@@ -1,0 +1,5 @@
+data/users.json
+models/*.pkl
+.venv/
+__pycache__/
+*.pyc

@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: proj3-defectsense
+  labels:
+    app: proj3-defectsense
+    version: "1.0.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: proj3-defectsense
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: proj3-defectsense
+        version: "1.0.0"
+    spec:
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: proj3-defectsense
+          image: proj3-defectsense:real
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+              name: http
+              protocol: TCP
+          env:
+            - name: FLASK_ENV
+              value: "production"
+            - name: FLASK_DEBUG
+              value: "false"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: defectsense-secrets
+                  key: secret-key
+                  optional: true
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 6
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: models-storage
+              mountPath: /app/ml/models
+              readOnly: true
+            - name: data-storage
+              mountPath: /app/data
+      volumes:
+        - name: models-storage
+          emptyDir: {}
+        - name: data-storage
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: proj3-defectsense
+  labels:
+    app: proj3-defectsense
+spec:
+  selector:
+    app: proj3-defectsense
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 5000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: defectsense-secrets
+type: Opaque
+stringData:
+  secret-key: "change-me-before-deploy"
