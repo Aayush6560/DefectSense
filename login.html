@@ -170,7 +170,8 @@ input::placeholder { color: var(--text-dim); }
         <input type="password" id="login-pass" placeholder="Enter password"
                autocomplete="current-password">
       </div>
-      <button class="btn" id="login-btn">Sign In →</button>
+      <!-- <button class="btn" id="login-btn">Sign In →</button> -->
+       <button class="btn" id="login-btn" onclick="doLogin()">Sign In →</button>
       <div class="error-msg" id="login-error" role="alert" aria-live="polite"></div>
 
       <div class="demo-accounts">
@@ -267,6 +268,7 @@ function hideError(id) {
 }
 
 async function doLogin() {
+  console.log("LOGIN CLICKED");
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
   hideError('login-error');
@@ -280,6 +282,7 @@ async function doLogin() {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
@@ -313,6 +316,7 @@ async function doRegister() {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ username, password, name }),
     });
     const data = await res.json();
@@ -334,7 +338,10 @@ async function doRegister() {
   localStorage.removeItem('token');
   sessionStorage.removeItem('token');
 
-  fetch('/api/auth/verify')
+  //fetch('/api/auth/verify')
+  fetch('/api/auth/verify', {
+  credentials: 'include'
+})
     .then(r => { if (r.ok) window.location.href = '/app'; })
     .catch(() => {});
 })();
