@@ -21,7 +21,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Syntax check
-        run: python -m py_compile run.py app.py auth.py auth_routes.py dashboard.py extractor.py model.py pipeline.py rag_chat.py routes.py train.py
+        run: python -m py_compile *.py
 
       - name: Run tests
         run: python -m unittest discover -v
