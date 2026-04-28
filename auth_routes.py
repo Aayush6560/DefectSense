@@ -8,12 +8,24 @@ auth_bp = Blueprint('auth', __name__)
 _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,32}$')
 
 
+# def _set_auth_cookie(response, token: str):
+#     secure_cookie = os.environ.get('COOKIE_SECURE', 'false').lower() == 'true'
+#     response.set_cookie(
+#         'token',
+#         token,
+#         httponly=True,
+#         samesite='Lax',
+#         secure=secure_cookie,
+#         max_age=86400,
+#         path='/',
+#     )
+#     return response
 def _set_auth_cookie(response, token: str):
     response.set_cookie(
         'token',
         token,
         httponly=True,
-        samesite='None',   # important for HTTPS
+        samesite='None',   # REQUIRED for HTTPS
         secure=True,       # REQUIRED for HTTPS
         max_age=86400,
         path='/',
