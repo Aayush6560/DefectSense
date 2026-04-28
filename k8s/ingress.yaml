@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: defectsense-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+
+  tls:
+    - hosts:
+        - defectsense.local
+      secretName: defectsense-tls
+
+  rules:
+    - host: defectsense.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: proj3-defectsense
+                port:
+                  number: 80

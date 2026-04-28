@@ -6,7 +6,7 @@ metadata:
     app: proj3-defectsense
     version: "1.0.0"
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: proj3-defectsense
   ports:
@@ -14,8 +14,3 @@ spec:
       protocol: TCP
       port: 80
       targetPort: 5000
-      nodePort: 31905
-  sessionAffinity: ClientIP
-  sessionAffinityConfig:
-    clientIP:
-      timeoutSeconds: 300
