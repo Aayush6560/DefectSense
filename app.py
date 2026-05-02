@@ -1,7 +1,8 @@
 import os
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 
 def create_app():
@@ -23,8 +24,28 @@ def create_app():
     app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
     app.config['JSON_SORT_KEYS'] = False
 
-    allowed_origins = os.environ.get('ALLOWED_ORIGINS', '*').split(',')
-    CORS(app, origins=allowed_origins, supports_credentials=True)
+    allowed_origins_raw = os.environ.get('ALLOWED_ORIGINS', '*')
+    allowed_origins = [o.strip() for o in allowed_origins_raw.split(',') if o.strip()]
+    # Use Flask-CORS for basic handling, but also ensure credentials and origin echoing
+    CORS(app, origins=allowed_origins or ['*'], supports_credentials=True)
+
+    # If the app is behind a reverse proxy (NGINX ingress), honor forwarded headers
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    @app.after_request
+    def _ensure_cors_credentials(resp):
+        # Ensure credentialed CORS responses echo the request origin when '*' is used
+        # Import `request` locally to avoid any module-level shadowing or import-order issues
+        from flask import request as _fl_request
+        origin = _fl_request.headers.get('Origin')
+        if origin:
+            if '*' in allowed_origins or allowed_origins == ['*']:
+                resp.headers['Access-Control-Allow-Origin'] = origin
+            elif origin in allowed_origins:
+                resp.headers['Access-Control-Allow-Origin'] = origin
+        # Always allow credentials when configured
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
 
     logging.basicConfig(
         level=logging.DEBUG if os.environ.get('FLASK_ENV') != 'production' else logging.WARNING,

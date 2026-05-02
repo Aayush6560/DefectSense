@@ -1,0 +1,118 @@
+{
+  "pipeline_id": "96116F3A",
+  "filename": "defectsense_final_clean.py",
+  "status": "warning",
+  "results": [
+    {
+      "stage": "lint",
+      "command": "/usr/local/bin/python3.10 -m py_compile /tmp/defectsense-pipeline-sfa5zl4s/uploaded_file.py",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration": 0.26073217391967773,
+      "status": "pass"
+    },
+    {
+      "stage": "unit_test",
+      "command": "/usr/local/bin/python3.10 -m unittest discover -v",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_login_with_invalid_credentials (test_smoke.AppSmokeTests) ... ok\ntest_login_with_valid_credentials (test_smoke.AppSmokeTests) ... ok\ntest_predict_requires_auth (test_smoke.AppSmokeTests) ... ok\ntest_root_page_is_available (test_smoke.AppSmokeTests) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 2.320s\n\nOK",
+      "duration": 3.3898189067840576,
+      "status": "pass"
+    },
+    {
+      "stage": "defect_scan",
+      "status": "pass",
+      "probability": 0.34955595738932116,
+      "label": "Clean",
+      "risk_score": {
+        "score": 35.0,
+        "category": "Medium",
+        "color": "yellow"
+      },
+      "top_risks": [
+        "total_Opnd",
+        "loc",
+        "v"
+      ],
+      "model_meta": {
+        "auc_roc": 0.7494907661178446,
+        "accuracy_at_threshold": 0.7909007352941176,
+        "cv_auc_mean": 0.7484836563116647,
+        "cv_auc_std": 0.004744642227709209,
+        "decision_threshold": 0.64,
+        "f1_at_threshold": 0.46026097271648875,
+        "balanced_accuracy_at_threshold": 0.6654465355177944,
+        "selected_model": "stacking",
+        "n_train": 8704,
+        "n_test": 2176,
+        "defect_rate": 0.1932904411764706,
+        "feature_importances": {
+          "loc": 0.1429747551857767,
+          "v(g)": 0.049399167141436426,
+          "ev(g)": 0.030509329615708076,
+          "iv(g)": 0.0482767029351783,
+          "n": 0.04531200656262085,
+          "v": 0.05628336164128367,
+          "l": 0.026492395473545493,
+          "d": 0.04960621203853334,
+          "i": 0.05714298209354801,
+          "e": 0.051237584951918345,
+          "b": 0.026245952499467963,
+          "t": 0.05140857418539657,
+          "lOCode": 0.05452691070037126,
+          "lOComment": 0.02481342767418039,
+          "lOBlank": 0.05945447876791584,
+          "locCodeAndComment": 0.011843289006263304,
+          "uniq_Op": 0.03500334841947069,
+          "uniq_Opnd": 0.04069774493197665,
+          "total_Op": 0.04711987508165921,
+          "total_Opnd": 0.04128153682531962,
+          "branchCount": 0.050370364268429106
+        },
+        "architecture": "Model selection among StackingClassifier, ExtraTrees, and HistGradientBoosting",
+        "dataset": "NASA KC1 PROMISE Repository"
+      }
+    },
+    {
+      "issues": [
+        {
+          "severity": "pass",
+          "rule": "OK",
+          "message": "No security vulnerabilities found"
+        }
+      ],
+      "pip_check": {
+        "stage": "pip-check",
+        "command": "/usr/local/bin/python3.10 -m pip check",
+        "returncode": 0,
+        "stdout": "No broken requirements found.",
+        "stderr": "",
+        "duration": 3.8272716999053955
+      },
+      "bandit": null,
+      "status": "pass"
+    },
+    {
+      "stage": "build",
+      "command": "docker-engine-api build",
+      "returncode": 0,
+      "stdout": "e8f\\n\"}\r\n{\"stream\":\" ---\\u003e Removed intermediate container 4c382fafbe8f\\n\"}\r\n{\"stream\":\" ---\\u003e 401f5bcdb247\\n\"}\r\n{\"stream\":\"Step 14/15 : HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5     CMD curl -fsS http://127.0.0.1:5000/health || exit 1\"}\r\n{\"stream\":\"\\n\"}\r\n{\"stream\":\" ---\\u003e Running in 086a1019865d\\n\"}\r\n{\"stream\":\" ---\\u003e Removed intermediate container 086a1019865d\\n\"}\r\n{\"stream\":\" ---\\u003e be67bfdad7c2\\n\"}\r\n{\"stream\":\"Step 15/15 : CMD [\\\"gunicorn\\\",     \\\"--workers\\\", \\\"2\\\",      \\\"--bind\\\", \\\"0.0.0.0:5000\\\",      \\\"--timeout\\\", \\\"300\\\",      \\\"--graceful-timeout\\\", \\\"30\\\",      \\\"--worker-class\\\", \\\"sync\\\",      \\\"--worker-connections\\\", \\\"100\\\",      \\\"--log-level\\\", \\\"info\\\",      \\\"--access-logfile\\\", \\\"-\\\",      \\\"--error-logfile\\\", \\\"-\\\",      \\\"run:app\\\"]\"}\r\n{\"stream\":\"\\n\"}\r\n{\"stream\":\" ---\\u003e Running in e26184d1ddf6\\n\"}\r\n{\"stream\":\" ---\\u003e Removed intermediate container e26184d1ddf6\\n\"}\r\n{\"stream\":\" ---\\u003e ef2b0349566a\\n\"}\r\n{\"aux\":{\"ID\":\"sha256:ef2b0349566ab1c81d12c7ce6bd595ad6601de888fb79f0782f5ca30685e8e94\"}}\r\n{\"stream\":\"Successfully built ef2b0349566a\\n\"}\r\n{\"stream\":\"Successfully tagged proj3-defectsense:96116f3a\\n\"}\r\n",
+      "stderr": "",
+      "duration": 44.2507905960083,
+      "image": "proj3-defectsense:96116f3a",
+      "status": "pass"
+    },
+    {
+      "stage": "k8s_deploy",
+      "status": "warning",
+      "stdout": "",
+      "stderr": "Cluster unreachable \u2014 client-side dry-run only. E0502 04:26:58.856193     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:58.913887     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:58.970165     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.019538     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.057767     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.103146     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.130941     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.168519     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.204613     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.237016     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.279066     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.317241     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.347636     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.375931     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.402231     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.426238     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.454736     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.483627     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.519026     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.553100     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.578358     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.602268     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.717723     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.750245     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.779703     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.825353     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.868646     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.883439     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.902449     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.933609     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.955409     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:26:59.995916     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.052344     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.082717     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.111237     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.131496     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.150691     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.290875     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.351135     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.405456     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.450735     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.488047     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.523515     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.563519     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.654828     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.703545     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.736663     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.781816     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.819933     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.852741     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.893629     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.933283     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.968125     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:00.997739     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.034427     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.067156     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.105384     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.145688     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.186660     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.246936     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.299591     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.338911     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.402673     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.448371     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.497121     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.532708     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.567276     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.606360     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nE0502 04:27:01.652233     260 memcache.go:265] \"Unhandled Error\" err=\"couldn't get current server API group list: Get \\\"https://127.0.0.1:51754/api?timeout=32s\\\": dial tcp 127.0.0.1:51754: connect: connection refused\"\nThe connection to the server 127.0.0.1:51754 was refused - did you specify the right host or port?",
+      "returncode": 1,
+      "duration": 0.14574408531188965,
+      "validated_only": true
+    }
+  ],
+  "timestamp": "2026-05-02T04:27:01.836861"
+}

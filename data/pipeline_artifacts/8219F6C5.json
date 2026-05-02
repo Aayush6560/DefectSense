@@ -1,0 +1,126 @@
+{
+  "pipeline_id": "8219F6C5",
+  "filename": "defectsense_final_clean.py",
+  "status": "success",
+  "results": [
+    {
+      "stage": "lint",
+      "command": "/usr/local/bin/python3.10 -m py_compile /tmp/defectsense-pipeline-qqjyh1u0/uploaded_file.py",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "",
+      "duration": 0.2558252811431885,
+      "status": "pass"
+    },
+    {
+      "stage": "unit_test",
+      "command": "/usr/local/bin/python3.10 -m unittest discover -v",
+      "returncode": 0,
+      "stdout": "",
+      "stderr": "test_login_with_invalid_credentials (test_smoke.AppSmokeTests) ... ok\ntest_login_with_valid_credentials (test_smoke.AppSmokeTests) ... ok\ntest_predict_requires_auth (test_smoke.AppSmokeTests) ... ok\ntest_root_page_is_available (test_smoke.AppSmokeTests) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 1.818s\n\nOK",
+      "duration": 2.7397069931030273,
+      "status": "pass"
+    },
+    {
+      "stage": "defect_scan",
+      "status": "pass",
+      "probability": 0.34955595738932116,
+      "label": "Clean",
+      "risk_score": {
+        "score": 35.0,
+        "category": "Medium",
+        "color": "yellow"
+      },
+      "top_risks": [
+        "total_Opnd",
+        "loc",
+        "v"
+      ],
+      "model_meta": {
+        "auc_roc": 0.7494907661178446,
+        "accuracy_at_threshold": 0.7909007352941176,
+        "cv_auc_mean": 0.7484836563116647,
+        "cv_auc_std": 0.004744642227709209,
+        "decision_threshold": 0.64,
+        "f1_at_threshold": 0.46026097271648875,
+        "balanced_accuracy_at_threshold": 0.6654465355177944,
+        "selected_model": "stacking",
+        "n_train": 8704,
+        "n_test": 2176,
+        "defect_rate": 0.1932904411764706,
+        "feature_importances": {
+          "loc": 0.1429747551857767,
+          "v(g)": 0.049399167141436426,
+          "ev(g)": 0.030509329615708076,
+          "iv(g)": 0.0482767029351783,
+          "n": 0.04531200656262085,
+          "v": 0.05628336164128367,
+          "l": 0.026492395473545493,
+          "d": 0.04960621203853334,
+          "i": 0.05714298209354801,
+          "e": 0.051237584951918345,
+          "b": 0.026245952499467963,
+          "t": 0.05140857418539657,
+          "lOCode": 0.05452691070037126,
+          "lOComment": 0.02481342767418039,
+          "lOBlank": 0.05945447876791584,
+          "locCodeAndComment": 0.011843289006263304,
+          "uniq_Op": 0.03500334841947069,
+          "uniq_Opnd": 0.04069774493197665,
+          "total_Op": 0.04711987508165921,
+          "total_Opnd": 0.04128153682531962,
+          "branchCount": 0.050370364268429106
+        },
+        "architecture": "Model selection among StackingClassifier, ExtraTrees, and HistGradientBoosting",
+        "dataset": "NASA KC1 PROMISE Repository"
+      }
+    },
+    {
+      "issues": [
+        {
+          "severity": "pass",
+          "rule": "OK",
+          "message": "No security vulnerabilities found"
+        }
+      ],
+      "pip_check": {
+        "stage": "pip-check",
+        "command": "/usr/local/bin/python3.10 -m pip check",
+        "returncode": 0,
+        "stdout": "No broken requirements found.",
+        "stderr": "",
+        "duration": 2.4770901203155518
+      },
+      "bandit": null,
+      "status": "pass"
+    },
+    {
+      "stage": "build",
+      "command": "docker build -t proj3-defectsense:8219f6c5 .",
+      "returncode": 0,
+      "stdout": "Sending build context to Docker daemon  46.15MB\n\nStep 1/15 : FROM python:3.10-slim AS base\n ---> 0ea978b26093\nStep 2/15 : ENV PYTHONUNBUFFERED=1     PYTHONDONTWRITEBYTECODE=1     PIP_NO_CACHE_DIR=1     PIP_DISABLE_PIP_VERSION_CHECK=1     FLASK_ENV=production     FLASK_DEBUG=false\n ---> Using cache\n ---> f01fa6a85641\nStep 3/15 : WORKDIR /app\n ---> Using cache\n ---> 3fbdc2be085c\nStep 4/15 : ARG REQUIREMENTS_FILE=requirements.txt\n ---> Using cache\n ---> ecf2f2ffcd94\nStep 5/15 : RUN apt-get update && apt-get install -y --no-install-recommends     build-essential     curl     docker-cli     docker.io     git     libgomp1     && rm -rf /var/lib/apt/lists/*\n ---> Using cache\n ---> 721a0c231881\nStep 6/15 : RUN curl -fsSL \"https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl\" -o /usr/local/bin/kubectl &&     chmod +x /usr/local/bin/kubectl\n ---> Using cache\n ---> 27f24887ebdb\nStep 7/15 : COPY requirements*.txt ./\n ---> Using cache\n ---> 4b53e0ca3f5f\nStep 8/15 : RUN pip install --no-cache-dir -r ${REQUIREMENTS_FILE}\n ---> Using cache\n ---> 81e8d28d395b\nStep 9/15 : RUN groupadd --gid 1000 appuser &&     useradd --uid 1000 --gid 1000 --no-create-home appuser &&     groupadd -g 999 docker || true &&     usermod -aG docker appuser\n ---> Running in 123e3f094d21\n\u001b[91mgroupadd: group 'docker' already exists\n\u001b[0m ---> Removed intermediate container 123e3f094d21\n ---> 44d95b70d84c\nStep 10/15 : COPY --chown=appuser:appuser . .\n ---> ef32b902a490\nStep 11/15 : RUN mkdir -p data ml/models &&     chown -R appuser:appuser data ml/models\n ---> Running in 99bda7a2cc5c\n ---> Removed intermediate container 99bda7a2cc5c\n ---> d817ed35f46b\nStep 12/15 : USER appuser\n ---> Running in 60f1cf53f9a8\n ---> Removed intermediate container 60f1cf53f9a8\n ---> 067dab939a16\nStep 13/15 : EXPOSE 5000\n ---> Running in 5bd33e8fec07\n ---> Removed intermediate container 5bd33e8fec07\n ---> 621ed418a469\nStep 14/15 : HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5     CMD curl -fsS http://127.0.0.1:5000/health || exit 1\n ---> Running in b3542a9c50eb\n ---> Removed intermediate container b3542a9c50eb\n ---> b8acf53c0226\nStep 15/15 : CMD [\"gunicorn\",     \"--workers\", \"2\",      \"--bind\", \"0.0.0.0:5000\",      \"--timeout\", \"300\",      \"--graceful-timeout\", \"30\",      \"--worker-class\", \"sync\",      \"--worker-connections\", \"100\",      \"--log-level\", \"info\",      \"--access-logfile\", \"-\",      \"--error-logfile\", \"-\",      \"run:app\"]\n ---> Running in 5c1c0b0c5f07\n ---> Removed intermediate container 5c1c0b0c5f07\n ---> e2a0ff1d2f1d\nSuccessfully built e2a0ff1d2f1d\nSuccessfully tagged proj3-defectsense:8219f6c5",
+      "stderr": "DEPRECATED: The legacy builder is deprecated and will be removed in a future release.\n            Install the buildx component to build images with BuildKit:\n            https://docs.docker.com/go/buildx/",
+      "duration": 47.29331588745117,
+      "image": "proj3-defectsense:8219f6c5",
+      "status": "pass"
+    },
+    {
+      "stage": "k8s_deploy",
+      "command": "kubectl apply -f /app/k8s",
+      "returncode": 0,
+      "stdout": "deployment.apps/proj3-defectsense configured\nservice/proj3-defectsense configured\nsecret/defectsense-secrets configured\ningress.networking.k8s.io/defectsense-ingress unchanged\nservice/proj3-defectsense configured",
+      "stderr": "",
+      "duration": 1.978379726409912,
+      "rollout": {
+        "stage": "k8s_rollout",
+        "command": "kubectl rollout status deployment/proj3-defectsense --timeout=180s",
+        "returncode": 0,
+        "stdout": "deployment \"proj3-defectsense\" successfully rolled out",
+        "stderr": "",
+        "duration": 0.2630150318145752
+      },
+      "status": "pass"
+    }
+  ],
+  "timestamp": "2026-05-02T04:46:22.920910"
+}

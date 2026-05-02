@@ -14,10 +14,16 @@ services:
       - FLASK_DEBUG=false
       - PYTHONUNBUFFERED=1
       - SECRET_KEY=${SECRET_KEY:-defectsense-dev-secret-change-me}
+      - GITHUB_REPOSITORY=Aayush6560/DefectSense
+      - GITHUB_REMOTE_URL=https://github.com/Aayush6560/DefectSense.git
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - KUBECONFIG=/home/appuser/.kube/config
     volumes:
+      - .:/app
       - ./ml/models:/app/ml/models
       - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${USERPROFILE}/.kube:/home/appuser/.kube:ro
     group_add:
       - "0"
     restart: unless-stopped

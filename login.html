@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com https://fonts.gstatic.com; font-src https://api.fontshare.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://api.fontshare.com https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://api.fontshare.com https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; connect-src 'self'">
 <title>DefectSense — Login</title>
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -31,7 +31,7 @@ body {
   background: var(--bg); color: var(--text);
   min-height: 100vh; display: flex;
   align-items: center; justify-content: center;
-  overflow: hidden; position: relative;
+  overflow: auto; position: relative;
   -webkit-font-smoothing: antialiased;
 }
 .bg-mesh {
@@ -137,8 +137,26 @@ input::placeholder { color: var(--text-dim); }
   90%  { opacity: 0.15; }
   100% { transform: translateY(-100px) scale(1); opacity: 0; }
 }
+</style>
+<!-- Responsive tweaks inserted below -->
+<style>
 @media (prefers-reduced-motion: reduce) { .floating-particle { animation: none; } }
 @media (max-width: 480px) { .container { padding: 1rem; } .card { padding: 1.5rem; } }
+/* Register form: two-column layout on wide screens */
+@media (min-width: 900px) {
+  #register-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  #register-form .form-group { margin-bottom: 0.75rem; }
+  /* Make button and banners span full width */
+  #register-form > .btn, #register-form > .error-msg, #register-form > .success-banner {
+    grid-column: 1 / -1;
+  }
+}
+</style>
 </style>
 </head>
 <body>
@@ -237,6 +255,16 @@ function switchTab(tab) {
   document.getElementById('tab-register').setAttribute('aria-selected', !isLogin);
   document.getElementById('login-form').style.display = isLogin ? 'block' : 'none';
   document.getElementById('register-form').style.display = isLogin ? 'none' : 'block';
+  // When opening register tab, ensure the form (and button) are visible on small screens
+  if (!isLogin) {
+    const regForm = document.getElementById('register-form');
+    if (regForm && regForm.scrollIntoView) {
+      // center the register form in the viewport for easier access
+      setTimeout(() => regForm.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
+      const firstInput = regForm.querySelector('input');
+      if (firstInput) firstInput.focus();
+    }
+  }
 }
 
 // Demo chip — fills username only; password fetched via a lookup on the server
@@ -252,9 +280,22 @@ document.querySelectorAll('.demo-chip[data-user]').forEach(chip => {
   });
 });
 
-// Keyboard: Enter submits active form
-document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('reg-pass').addEventListener('keydown',   e => { if (e.key === 'Enter') doRegister(); });
+// Keyboard: Enter submits active form (guarded)
+const loginPassEl = document.getElementById('login-pass');
+if (loginPassEl) loginPassEl.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+const regPassEl = document.getElementById('reg-pass');
+if (regPassEl) regPassEl.addEventListener('keydown', e => { if (e.key === 'Enter') doRegister(); });
+
+
+// Button clicks (attach safely)
+const loginBtnEl = document.getElementById('login-btn');
+if (loginBtnEl) {
+  loginBtnEl.addEventListener('click', (e) => { e.preventDefault(); if (!loginBtnEl.disabled) doLogin(); });
+}
+const regBtnEl = document.getElementById('reg-btn');
+if (regBtnEl) {
+  regBtnEl.addEventListener('click', (e) => { e.preventDefault(); if (!regBtnEl.disabled) doRegister(); });
+}
 
 function showError(id, msg) {
   const el = document.getElementById(id);
@@ -268,16 +309,16 @@ function hideError(id) {
 }
 
 async function doLogin() {
-  console.log("LOGIN CLICKED");
   const username = document.getElementById('login-user').value.trim();
   const password = document.getElementById('login-pass').value;
   hideError('login-error');
-
-  if (!username || !password) { showError('login-error', 'Please enter username and password.'); return; }
-
   const btn = document.getElementById('login-btn');
   btn.disabled = true; btn.textContent = 'Signing in...';
-
+  if (!username || !password) {
+    showError('login-error', 'Please enter username and password.');
+    btn.disabled = false; btn.textContent = 'Sign In →';
+    return;
+  }
   try {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
@@ -285,16 +326,18 @@ async function doLogin() {
       credentials: 'include',
       body: JSON.stringify({ username, password }),
     });
-    const data = await res.json();
+    let data = {};
+    try { data = await res.json(); } catch {}
     if (!res.ok) {
       showError('login-error', data.error || (res.status === 429 ? 'Too many attempts. Wait 5 minutes.' : 'Invalid credentials.'));
+      btn.disabled = false; btn.textContent = 'Sign In →';
       return;
     }
     setSession({ username: data.username, name: data.name, role: data.role });
+    btn.textContent = 'Redirecting...';
     window.location.href = '/app';
   } catch {
-    showError('login-error', 'Network error — is the server running?');
-  } finally {
+    showError('login-error', 'Network/server error.');
     btn.disabled = false; btn.textContent = 'Sign In →';
   }
 }
@@ -305,13 +348,18 @@ async function doRegister() {
   const name     = document.getElementById('reg-name').value.trim();
   hideError('reg-error');
   document.getElementById('reg-success').style.display = 'none';
-
-  if (!username || !password) { showError('reg-error', 'Username and password are required.'); return; }
-  if (password.length < 8)    { showError('reg-error', 'Password must be at least 8 characters.'); return; }
-
   const btn = document.getElementById('reg-btn');
   btn.disabled = true; btn.textContent = 'Creating account...';
-
+  if (!username || !password) {
+    showError('reg-error', 'Username and password are required.');
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    return;
+  }
+  if (password.length < 8) {
+    showError('reg-error', 'Password must be at least 8 characters.');
+    btn.disabled = false; btn.textContent = 'Create Account →';
+    return;
+  }
   try {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
@@ -319,29 +367,32 @@ async function doRegister() {
       credentials: 'include',
       body: JSON.stringify({ username, password, name }),
     });
-    const data = await res.json();
-    if (!res.ok) { showError('reg-error', data.error || 'Registration failed.'); return; }
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (!res.ok) {
+      showError('reg-error', data.error || 'Registration failed.');
+      btn.disabled = false; btn.textContent = 'Create Account →';
+      return;
+    }
     setSession({ username: data.username, name: data.name, role: data.role });
     document.getElementById('reg-success').style.display = 'block';
+    btn.textContent = 'Redirecting...';
     setTimeout(() => window.location.href = '/app', 1200);
   } catch {
-    showError('reg-error', 'Network error. Please try again.');
-  } finally {
+    showError('reg-error', 'Network/server error.');
     btn.disabled = false; btn.textContent = 'Create Account →';
   }
 }
 
-// Redirect if already authenticated
+// Redirect if already authenticated (robust for NGINX/proxy)
 (function checkExistingSession() {
-  // Clear old token keys from previous frontend versions.
   localStorage.removeItem('ds_token');
   localStorage.removeItem('token');
   sessionStorage.removeItem('token');
-
-  //fetch('/api/auth/verify')
   fetch('/api/auth/verify', {
-  credentials: 'include'
-})
+    credentials: 'include',
+    headers: { 'Cache-Control': 'no-cache' }
+  })
     .then(r => { if (r.ok) window.location.href = '/app'; })
     .catch(() => {});
 })();

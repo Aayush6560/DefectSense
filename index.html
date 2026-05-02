@@ -366,6 +366,10 @@ input[type=file] { display: none; }
 @media (max-width: 768px) {
   .sidebar { display: none; }
   .main { padding: 1rem; }
+  .page-header h2 { font-size: 1.1rem; }
+  .card { padding: 1rem; }
+  .result-card { padding: 0.75rem; }
+  .chat-messages { height: 180px; }
 }
 </style>
 </head>
@@ -404,6 +408,9 @@ input[type=file] { display: none; }
       <div class="nav-label">DevOps</div>
       <div class="nav-item" onclick="showPage('pipeline')" id="nav-pipeline">
         <span class="icon">⚙</span> CI/CD Pipeline
+      </div>
+      <div class="nav-item" onclick="showPage('devops')" id="nav-devops">
+        <span class="icon">🔧</span> DevOps Dashboard
       </div>
       <a class="nav-item" href="/dashboard">
         <span class="icon">◎</span> Live Dashboard
@@ -597,12 +604,106 @@ input[type=file] { display: none; }
       </div>
     </div>
 
+    <!-- ===== DEVOPS DASHBOARD ===== -->
+    <div class="page" id="page-devops">
+      <div class="page-header">
+        <h2>DevOps Dashboard</h2>
+        <p>Project-only Docker status, Kubernetes visibility, and GitHub activity</p>
+      </div>
+
+      <!-- Status Summary -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1rem;">
+        <div class="card" style="text-align:center;">
+          <div class="card-title" style="justify-content:center;"><span class="dot"></span> Overall</div>
+          <div style="font-size:2rem;margin:1rem 0;" id="health-icon">◎</div>
+          <div style="font-size:0.875rem;color:var(--text-muted);" id="health-status">Loading...</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="card-title" style="justify-content:center;"><span class="dot"></span> Docker</div>
+          <div style="font-size:2rem;margin:1rem 0;" id="docker-icon">🐳</div>
+          <div style="font-size:0.875rem;color:var(--text-muted);" id="docker-status">Loading...</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="card-title" style="justify-content:center;"><span class="dot"></span> Kubernetes</div>
+          <div style="font-size:2rem;margin:1rem 0;" id="k8s-icon">☸️</div>
+          <div style="font-size:0.875rem;color:var(--text-muted);" id="k8s-status">Loading...</div>
+        </div>
+        <div class="card" style="text-align:center;">
+          <div class="card-title" style="justify-content:center;"><span class="dot"></span> GitHub</div>
+          <div style="font-size:2rem;margin:1rem 0;" id="github-icon">✓</div>
+          <div style="font-size:0.875rem;color:var(--text-muted);" id="github-status">Loading...</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:1rem;">
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Docker Images</div>
+          <div id="docker-images-content" style="font-size:0.8rem;">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Docker Containers</div>
+          <div id="docker-containers-content" style="font-size:0.8rem;">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> Kubernetes</div>
+          <div id="k8s-summary-content" style="font-size:0.8rem;">Loading...</div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot"></span> GitHub Activity</div>
+          <div id="github-workflows-content" style="font-size:0.8rem;">Loading...</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap;">
+        <button onclick="loadDevOpsStatus()" style="padding:0.75rem 1.5rem;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--sans);font-weight:600;cursor:pointer;font-size:0.875rem;">
+          🔄 Refresh All
+        </button>
+        <button onclick="showGitPushModal()" style="padding:0.75rem 1.5rem;background:var(--success);border:none;border-radius:10px;color:white;font-family:var(--sans);font-weight:600;cursor:pointer;font-size:0.875rem;">
+          ⬆️ Push to GitHub
+        </button>
+      </div>
+    </div>
+
+    <!-- Git Push Modal -->
+    <div id="git-push-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;">
+      <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:2rem;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;">
+        <h3 style="margin:0 0 1rem 0;font-size:1.25rem;">Push to GitHub</h3>
+        <p style="color:var(--text-muted);font-size:0.875rem;margin:0 0 1.5rem 0;">Commit and push your changes to the main branch</p>
+        
+        <label style="display:block;margin-bottom:0.5rem;font-size:0.875rem;font-weight:600;">Commit Message</label>
+        <textarea id="commit-message" placeholder="e.g., Add new feature or fix bug" style="width:100%;padding:0.75rem;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:var(--sans);margin-bottom:1.5rem;min-height:80px;resize:vertical;"></textarea>
+        
+        <label style="display:block;margin-bottom:0.5rem;font-size:0.875rem;font-weight:600;">GitHub Token (Optional)</label>
+        <input type="password" id="github-token" placeholder="Personal access token (if not in env)" style="width:100%;padding:0.75rem;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);color:var(--text);font-family:var(--mono);margin-bottom:1.5rem;font-size:0.8rem;">
+        <small style="display:block;color:var(--text-muted);margin-bottom:1.5rem;">Leave empty if GITHUB_TOKEN is set in environment</small>
+        
+        <div style="display:flex;gap:0.75rem;">
+          <button onclick="performGitPush()" style="flex:1;padding:0.75rem;background:var(--success);border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;">
+            ✓ Push
+          </button>
+          <button onclick="closeGitPushModal()" style="flex:1;padding:0.75rem;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-weight:600;cursor:pointer;">
+            Cancel
+          </button>
+        </div>
+        <div id="git-push-status" style="margin-top:1rem;font-size:0.875rem;"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
 <script>
 const API = { user: null };
 let currentPrediction = null;
+
+// Restore prediction from localStorage if present
+try {
+  const saved = localStorage.getItem('ds_last_prediction');
+  if (saved) {
+    currentPrediction = JSON.parse(saved);
+    showResults(currentPrediction);
+  }
+} catch(e) {}
 
 // Auth setup
 async function initAuth() {
@@ -612,7 +713,10 @@ async function initAuth() {
   sessionStorage.removeItem('token');
 
   try {
-    const verifyRes = await fetch('/api/auth/verify');
+    //const verifyRes = await fetch('/api/auth/verify');
+    const verifyRes = await fetch('/api/auth/verify', {
+  credentials: 'include'
+});
     if (!verifyRes.ok) {
       window.location.href = '/';
       return;
@@ -637,7 +741,7 @@ async function initAuth() {
 }
 
 function logout() {
-  fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  fetch('/api/auth/logout', { method: 'POST' ,  credentials: 'include'}).catch(() => {});
   localStorage.removeItem('ds_token');
   localStorage.removeItem('token');
   localStorage.removeItem('ds_user');
@@ -674,12 +778,28 @@ function hideLoading() { document.getElementById('loading-overlay').classList.re
 
 function notify(msg, type='info') {
   const el = document.getElementById('notif');
-  el.textContent = msg; el.className = `notif ${type} show`;
+  el.textContent = msg;
+  el.className = `notif ${type} show`;
+  if (type === 'error') {
+    el.style.background = 'rgba(239,68,68,0.25)';
+    el.style.color = '#fff';
+    el.style.border = '2px solid #ef4444';
+  } else if (type === 'success') {
+    el.style.background = 'rgba(16,185,129,0.18)';
+    el.style.color = '#fff';
+    el.style.border = '2px solid #10b981';
+  } else {
+    el.style.background = '';
+    el.style.color = '';
+    el.style.border = '';
+  }
   setTimeout(() => el.classList.remove('show'), 3500);
 }
 
 async function uploadFile(file) {
   if (!file.name.endsWith('.py')) { notify('Only .py files supported', 'error'); return; }
+  // Clear any previous prediction before uploading
+  localStorage.removeItem('ds_last_prediction');
   showLoading('Extracting 21 code metrics with radon analysis...');
 
   const fd = new FormData();
@@ -688,6 +808,7 @@ async function uploadFile(file) {
   try {
     const res = await fetch('/api/predict', {
       method: 'POST',
+      credentials: 'include', 
       headers: authHeaders(),
       body: fd
     });
@@ -707,6 +828,8 @@ async function uploadFile(file) {
       return;
     }
     currentPrediction = data;
+    // Persist prediction for reload
+    localStorage.setItem('ds_last_prediction', JSON.stringify(data));
     showResults(data);
     notify(`Analysis complete: ${mapRiskLabel(data.label, data.probability)}`, data.label === 'Clean' ? 'success' : 'error');
     document.getElementById('pipeline-btn').disabled = false;
@@ -721,9 +844,26 @@ function showResults(data) {
   document.getElementById('upload-section').style.display = 'none';
   document.getElementById('results-section').style.display = 'block';
 
-  const displayLabel = mapRiskLabel(data.label, data.probability);
+  // --- DEMO: Prediction, Confidence, Why ---
+  let predIcon = data.prediction && data.prediction.toLowerCase().includes('defect') ? '❌' : '✅';
+  let predText = data.prediction ? data.prediction.toUpperCase() : '-';
+  let confText = typeof data.confidence === 'number' ? data.confidence + '%' : '-';
+  let reasons = Array.isArray(data.reasons) && data.reasons.length ? data.reasons : [];
 
-  // File summary
+  document.getElementById('score-value').className = `score-value ${data.confidence >= 70 ? 'danger' : data.confidence >= 40 ? 'warn' : 'success'}`;
+  document.getElementById('score-value').textContent = confText;
+  document.getElementById('score-label').className = `score-label ${data.confidence >= 70 ? 'danger' : data.confidence >= 40 ? 'warn' : 'success'}`;
+  document.getElementById('score-label').innerHTML = `Prediction: <b>${predText}</b> ${predIcon}`;
+
+  // Why section
+  let whyHtml = '';
+  if (reasons.length) {
+    whyHtml = `<div style="margin-top:1rem;font-size:1rem;font-weight:600;">Why?</div><ul style="margin:0.5rem 0 0 1.2rem;">` +
+      reasons.map(r => `<li>${r}</li>`).join('') + '</ul>';
+  }
+  document.getElementById('risks-content').innerHTML = whyHtml || '<div style="color:var(--success);font-size:0.875rem;padding:0.5rem;">✓ No significant risk factors detected</div>';
+
+  // File summary (unchanged)
   const s = data.summary;
   const funcs = (s.functions || []).slice(0,4);
   document.getElementById('file-summary-content').innerHTML = `
@@ -740,16 +880,7 @@ function showResults(data) {
     ${s.error ? `<div style="color:var(--warn);font-size:0.75rem;margin-top:0.5rem;">⚠ ${s.error}</div>` : ''}
   `;
 
-  // Score
-  const prob = data.probability;
-  const pct = (prob * 100).toFixed(1);
-  let cls = prob >= 0.7 ? 'danger' : prob >= 0.4 ? 'warn' : 'success';
-  document.getElementById('score-value').className = `score-value ${cls}`;
-  document.getElementById('score-value').textContent = pct + '%';
-  document.getElementById('score-label').className = `score-label ${cls}`;
-  document.getElementById('score-label').textContent = displayLabel;
-
-  // Metrics
+  // Metrics (unchanged)
   const km = data.key_metrics;
   document.getElementById('metrics-content').innerHTML = Object.entries(km).map(([k,v]) => `
     <div class="metric-row">
@@ -758,7 +889,7 @@ function showResults(data) {
     </div>
   `).join('');
 
-  // SHAP
+  // SHAP (unchanged)
   const topFeats = data.top_features || [];
   const maxShap = Math.max(...topFeats.map(f => Math.abs(f[1])), 0.01);
   document.getElementById('shap-content').innerHTML = topFeats.map(([name, val]) => {
@@ -772,18 +903,6 @@ function showResults(data) {
       <div class="shap-track"><div class="shap-fill ${pos ? 'pos' : 'neg'}" style="width:${pct2}%"></div></div>
     </div>`;
   }).join('') || '<div style="color:var(--text-muted);font-size:0.875rem;">No SHAP data available</div>';
-
-  // Risks
-  const risks = data.risks || [];
-  document.getElementById('risks-content').innerHTML = risks.length
-    ? risks.map(r => `<div class="risk-item ${r.severity}">
-        <span class="risk-badge ${r.severity}">${r.severity.toUpperCase()}</span>
-        <div class="risk-text">
-          <div class="risk-factor">${r.factor}: ${typeof r.value === 'number' ? r.value.toFixed(2) : r.value}</div>
-          <div class="risk-msg">${r.message}</div>
-        </div>
-      </div>`).join('')
-    : '<div style="color:var(--success);font-size:0.875rem;padding:0.5rem;">✓ No significant risk factors detected</div>';
 
   // Init pipeline stages display
   initPipelineStages();
@@ -804,6 +923,8 @@ function resetAnalysis() {
   document.getElementById('results-section').style.display = 'none';
   document.getElementById('file-input').value = '';
   currentPrediction = null;
+  // Remove persisted prediction
+  localStorage.removeItem('ds_last_prediction');
   document.getElementById('chat-messages').innerHTML = `
     <div class="chat-msg ai">
       <div class="sender">DefectSense AI</div>
@@ -811,7 +932,7 @@ function resetAnalysis() {
     </div>`;
 }
 
-// Chat
+// Chat with sources
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const question = input.value.trim();
@@ -829,16 +950,20 @@ async function sendChat() {
   msgs.innerHTML += `<div class="chat-msg ai" id="${aiMsgId}">
     <div class="sender">DefectSense AI <span style="font-size:0.6rem;color:var(--text-dim);">CTX</span></div>
     <div class="bubble" id="${aiMsgId}-text"><span class="cursor"></span></div>
+    <div class="sources" id="${aiMsgId}-sources" style="font-size:0.8rem;color:var(--accent2);margin-top:0.5rem;"></div>
   </div>`;
   msgs.scrollTop = msgs.scrollHeight;
 
   const bubbleEl = document.getElementById(aiMsgId + '-text');
+  const sourcesEl = document.getElementById(aiMsgId + '-sources');
   let fullText = '';
   let sawChunk = false;
+  let sources = [];
 
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
+      credentials: 'include',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ question })
     });
@@ -875,13 +1000,17 @@ async function sendChat() {
           if (chunk.text) {
             sawChunk = true;
             fullText += chunk.text;
-            // Render markdown-like bold
             bubbleEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') + '<span class="cursor"></span>';
             msgs.scrollTop = msgs.scrollHeight;
           }
           if (chunk.done) {
             bubbleEl.innerHTML = fullText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
             sawChunk = true;
+            if (chunk.sources && Array.isArray(chunk.sources) && chunk.sources.length) {
+              sources = chunk.sources;
+              sourcesEl.innerHTML = `<span style='color:var(--accent2);font-weight:600;'>Sources:</span> <ul style='margin:0.3rem 0 0 1.2rem;'>` +
+                sources.map(s => `<li>${escHtml(s)}</li>`).join('') + '</ul>';
+            }
           }
         } catch(e) {}
       }
@@ -909,6 +1038,7 @@ async function ragSearch() {
   try {
     const res = await fetch('/api/rag-search', {
       method: 'POST',
+      credentials: 'include',
       headers: { ...authHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: q })
     });
@@ -957,7 +1087,12 @@ async function runPipeline() {
 
   const output = document.getElementById('pipeline-output');
   output.innerHTML = '';
+  const existingArtifactBtn = document.getElementById('pipeline-artifact-btn');
+  if (existingArtifactBtn) {
+    existingArtifactBtn.remove();
+  }
 
+  let lastPipelineId = null;
   const addLog = (txt, color='var(--text-muted)') => {
     const ts = new Date().toLocaleTimeString();
     output.innerHTML += `<div><span style="color:var(--text-dim);">[${ts}]</span> <span style="color:${color};">${txt}</span></div>`;
@@ -969,6 +1104,7 @@ async function runPipeline() {
   try {
     const res = await fetch('/api/pipeline', {
       method: 'POST',
+      credentials: 'include',
       headers: authHeaders()
     });
     if (!res.ok || !res.body) {
@@ -995,6 +1131,9 @@ async function runPipeline() {
         if (!line.startsWith('data: ')) continue;
         try {
           const d = JSON.parse(line.slice(6));
+          if (d.type === 'pipeline_start') {
+            lastPipelineId = d.pipeline_id;
+          }
           handlePipelineEvent(d, addLog);
         } catch(e) {}
       }
@@ -1003,8 +1142,43 @@ async function runPipeline() {
     addLog('Pipeline error: ' + e.message, 'var(--danger)');
   }
 
+  // Add artifact download button if we have a pipeline ID
+  if (lastPipelineId) {
+    const artifactBtn = document.createElement('button');
+    artifactBtn.id = 'pipeline-artifact-btn';
+    artifactBtn.style.cssText = 'margin-top:1rem;padding:0.75rem 1.25rem;background:var(--accent);border:none;border-radius:10px;color:white;font-family:var(--sans);font-weight:600;cursor:pointer;font-size:0.875rem;';
+    artifactBtn.textContent = `📥 Download Artifact (#${lastPipelineId})`;
+    artifactBtn.onclick = () => downloadArtifact(lastPipelineId);
+    output.parentElement.appendChild(artifactBtn);
+  }
+
   btn.disabled = false; btn.textContent = '▶ Run Again';
   loadHistory();
+}
+
+async function downloadArtifact(pipelineId) {
+  try {
+    const res = await fetch(`/api/pipeline-artifact/${pipelineId}/download`, {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    if (!res.ok) {
+      notify('Failed to download artifact', 'error');
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pipeline-${pipelineId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    notify('Artifact downloaded', 'success');
+  } catch(e) {
+    notify('Download error: ' + e.message, 'error');
+  }
 }
 
 function handlePipelineEvent(d, addLog) {
@@ -1072,6 +1246,7 @@ function handlePipelineEvent(d, addLog) {
 async function loadHistory() {
   try {
     const res = await fetch('/api/pipeline/history', {
+      credentials: 'include',
       headers: authHeaders(),
       cache: 'no-store'
     });
@@ -1114,6 +1289,285 @@ async function loadHistory() {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// DevOps Dashboard
+async function loadDevOpsStatus() {
+  try {
+    const res = await fetch('/api/devops/status', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    if (!res.ok) throw new Error('Failed to fetch DevOps status');
+    const data = await res.json();
+    
+    // Update summary
+    const health = data.summary.overall_health;
+    const healthEl = document.getElementById('health-icon');
+    healthEl.textContent = health === 'healthy' ? '✓' : '⚠';
+    healthEl.style.color = health === 'healthy' ? 'var(--success)' : 'var(--warn)';
+    document.getElementById('health-status').textContent = health;
+    
+    // Load individual sections
+    loadDockerStatus();
+    loadK8sSummary();
+    loadGitHubStatus();
+  } catch(e) {
+    notify('Failed to load DevOps status: ' + e.message, 'error');
+  }
+}
+
+async function loadDockerStatus() {
+  try {
+    // Images
+    const imgRes = await fetch('/api/docker/images', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const imgData = await imgRes.json();
+    
+    const imgIcon = document.getElementById('docker-icon');
+    const imgStatus = document.getElementById('docker-status');
+    if (imgData.status === 'success') {
+      imgIcon.style.color = 'var(--success)';
+      imgStatus.textContent = `${imgData.images.length} images`;
+    } else {
+      imgIcon.style.color = 'var(--warn)';
+      imgStatus.textContent = 'Unavailable';
+    }
+    
+    const imagesHtml = imgData.status === 'success'
+      ? imgData.images.length === 0
+        ? '<div style="color:var(--text-muted);">No images found</div>'
+        : `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Repository</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Tag</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Size</th></tr>${imgData.images.map(i => `<tr><td style="padding:0.25rem 0;">${escHtml(i.repository)}</td><td style="padding:0.25rem 0;color:var(--accent2);">${i.tag}</td><td style="padding:0.25rem 0;color:var(--text-muted);">${i.size}</td></tr>`).join('')}</table>`
+      : `<div style="color:var(--danger);">${imgData.message}</div>`;
+    document.getElementById('docker-images-content').innerHTML = imagesHtml;
+    
+    // Containers
+    const ctrRes = await fetch('/api/docker/containers', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const ctrData = await ctrRes.json();
+    const ctrHtml = ctrData.status === 'success'
+      ? ctrData.containers.length === 0
+        ? '<div style="color:var(--text-muted);">No containers running</div>'
+        : `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Name</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Status</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Image</th></tr>${ctrData.containers.map(c => `<tr><td style="padding:0.25rem 0;">${escHtml(c.name)}</td><td style="padding:0.25rem 0;color:${c.status.includes('Up') ? 'var(--success)' : 'var(--warn)'};">${c.status.split(' ')[0]}</td><td style="padding:0.25rem 0;color:var(--accent2);">${escHtml(c.image)}</td></tr>`).join('')}</table>`
+      : `<div style="color:var(--danger);">${ctrData.message}</div>`;
+    document.getElementById('docker-containers-content').innerHTML = ctrHtml;
+  } catch(e) {
+    document.getElementById('docker-images-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+    document.getElementById('docker-containers-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadK8sStatus() {
+  try {
+    // Cluster info
+    const clusterRes = await fetch('/api/kubernetes/cluster-info', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const clusterData = await clusterRes.json();
+    
+    const k8sIcon = document.getElementById('k8s-icon');
+    const k8sStatus = document.getElementById('k8s-status');
+    if (clusterData.status === 'connected') {
+      k8sIcon.style.color = 'var(--success)';
+      k8sStatus.textContent = 'Connected';
+    } else {
+      k8sIcon.style.color = 'var(--warn)';
+      k8sStatus.textContent = clusterData.status === 'not_installed' ? 'Not installed' : 'Disconnected';
+    }
+    
+    // Pods
+    const podsRes = await fetch('/api/kubernetes/pods?namespace=default', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const podsData = await podsRes.json();
+    const podsHtml = podsData.status === 'success'
+      ? podsData.pods.length === 0
+        ? '<div style="color:var(--text-muted);">No pods in default namespace</div>'
+        : `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Name</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Status</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Ready</th></tr>${podsData.pods.map(p => `<tr><td style="padding:0.25rem 0;">${escHtml(p.name)}</td><td style="padding:0.25rem 0;color:${p.status === 'Running' ? 'var(--success)' : 'var(--warn)'};">${p.status}</td><td style="padding:0.25rem 0;">${p.ready}</td></tr>`).join('')}</table>`
+      : `<div style="color:var(--text-muted);">N/A — cluster not connected</div>`;
+    document.getElementById('k8s-pods-content').innerHTML = podsHtml;
+    
+    // Deployments
+    const deploysRes = await fetch('/api/kubernetes/deployments?namespace=default', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const deploysData = await deploysRes.json();
+    const deploysHtml = deploysData.status === 'success'
+      ? deploysData.deployments.length === 0
+        ? '<div style="color:var(--text-muted);">No deployments in default namespace</div>'
+        : `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Name</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Ready</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Image</th></tr>${deploysData.deployments.map(d => `<tr><td style="padding:0.25rem 0;">${escHtml(d.name)}</td><td style="padding:0.25rem 0;color:${d.replicas_ready === d.replicas_desired ? 'var(--success)' : 'var(--warn)'};">${d.replicas_ready}/${d.replicas_desired}</td><td style="padding:0.25rem 0;color:var(--accent2);font-size:0.7rem;">${escHtml(d.image)}</td></tr>`).join('')}</table>`
+      : `<div style="color:var(--text-muted);">N/A — cluster not connected</div>`;
+    document.getElementById('k8s-deployments-content').innerHTML = deploysHtml;
+  } catch(e) {
+    document.getElementById('k8s-pods-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+    document.getElementById('k8s-deployments-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadGitHubStatus() {
+  try {
+    const res = await fetch('/api/github/workflows', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const data = await res.json();
+    
+    const ghIcon = document.getElementById('github-icon');
+    const ghStatus = document.getElementById('github-status');
+    if (data.status === 'success') {
+      ghIcon.style.color = 'var(--success)';
+      ghStatus.textContent = `${data.runs.length} ${data.runs.some(r => r.conclusion || r.updated_at) ? 'runs' : 'workflows'}`;
+    } else {
+      ghIcon.style.color = 'var(--warn)';
+      ghStatus.textContent = 'Not configured';
+    }
+    
+    const recentActivity = Array.isArray(data.recent_git_activity) ? data.recent_git_activity : [];
+    const latestRun = data.runs && data.runs.length ? data.runs[0] : null;
+    const noTodayText = recentActivity.length === 0
+      ? `No commits recorded today.${latestRun ? ` Latest public workflow run: ${latestRun.name || 'workflow'} on ${latestRun.head_branch || 'main'} (${latestRun.conclusion || latestRun.status || 'unknown'}).` : ''}`
+      : '';
+    const hasRunDetails = data.status === 'success' && data.runs.length > 0 && (data.runs[0].conclusion !== undefined || data.runs[0].updated_at !== undefined);
+    const wfHtml = hasRunDetails
+      ? `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Run</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Event</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Branch</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Status</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Updated</th></tr>${data.runs.map(r => `<tr><td style="padding:0.25rem 0;">${escHtml(r.name || String(r.id))}</td><td style="padding:0.25rem 0;color:var(--accent2);">${escHtml(r.event || 'push')}</td><td style="padding:0.25rem 0;">${escHtml(r.head_branch || 'main')}</td><td style="padding:0.25rem 0;color:${r.conclusion === 'success' ? 'var(--success)' : r.conclusion === 'failure' ? 'var(--danger)' : 'var(--warn)'};">${escHtml(r.conclusion || r.status || 'unknown')}</td><td style="padding:0.25rem 0;">${escHtml((r.updated_at || '').replace('T', ' ').replace('Z', ' UTC'))}</td></tr>`).join('')}</table>`
+      : data.status === 'success' && data.runs.length > 0
+        ? `<table style="width:100%;font-size:0.75rem;"><tr><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Workflow</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">File</th><th style="text-align:left;color:var(--text-muted);padding:0.5rem 0;">Triggers</th></tr>${data.runs.map(w => `<tr><td style="padding:0.25rem 0;">${escHtml(w.name)}</td><td style="padding:0.25rem 0;color:var(--accent2);">${escHtml(w.workflow_file || w.path || '')}</td><td style="padding:0.25rem 0;">${Array.isArray(w.triggers) && w.triggers.length ? escHtml(w.triggers.join(', ')) : 'manual'}</td></tr>`).join('')}</table>`
+      : '<div style="color:var(--text-muted);">No GitHub Actions workflows configured. Create .github/workflows/*.yml to enable CI/CD.</div>';
+
+    const activityHtml = recentActivity.length
+      ? `<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+          <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:0.5rem;">Recent commits today</div>
+          <ul style="margin:0 0 0 1rem;padding:0;font-family:var(--mono);font-size:0.72rem;color:var(--text-muted);">
+            ${recentActivity.map(commit => `<li style="margin-bottom:0.25rem;"><span style="color:var(--accent2);">${escHtml(commit.id)}</span> ${escHtml(commit.message)}</li>`).join('')}
+          </ul>
+        </div>`
+      : `<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--text-muted);font-size:0.78rem;">${escHtml(noTodayText || 'No local git commits recorded today.')}</div>`;
+
+    document.getElementById('github-workflows-content').innerHTML = wfHtml + activityHtml;
+  } catch(e) {
+    document.getElementById('github-workflows-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+  }
+}
+
+async function loadK8sSummary() {
+  try {
+    const clusterRes = await fetch('/api/kubernetes/cluster-info', {
+      credentials: 'include',
+      headers: authHeaders()
+    });
+    const clusterData = await clusterRes.json();
+    const summaryEl = document.getElementById('k8s-summary-content');
+
+    if (clusterData.status === 'connected') {
+      const [podsRes, deploysRes] = await Promise.all([
+        fetch('/api/kubernetes/pods?namespace=default', { credentials: 'include', headers: authHeaders() }),
+        fetch('/api/kubernetes/deployments?namespace=default', { credentials: 'include', headers: authHeaders() }),
+      ]);
+      const podsData = await podsRes.json();
+      const deploysData = await deploysRes.json();
+      const podCount = podsData.status === 'success' ? podsData.pods.length : 0;
+      const deployCount = deploysData.status === 'success' ? deploysData.deployments.length : 0;
+      document.getElementById('k8s-icon').style.color = 'var(--success)';
+      document.getElementById('k8s-status').textContent = 'Connected';
+      summaryEl.innerHTML = `<div style="color:var(--success);font-weight:600;">Connected to Docker Desktop Kubernetes</div><div style="margin-top:0.35rem;color:var(--text-muted);">${podCount} pods and ${deployCount} deployments in the default namespace.</div>`;
+      return;
+    }
+
+    if (clusterData.status === 'not_installed') {
+      document.getElementById('k8s-icon').style.color = 'var(--warn)';
+      document.getElementById('k8s-status').textContent = 'Needs kubectl';
+      summaryEl.innerHTML = `<div style="color:var(--warn);font-weight:600;">Kubernetes is running, but this container cannot read it yet.</div><div style="margin-top:0.35rem;color:var(--text-muted);">Install kubectl in the image and mount the host kubeconfig to show live pods and deployments.</div>`;
+      return;
+    }
+
+    document.getElementById('k8s-icon').style.color = 'var(--warn)';
+    document.getElementById('k8s-status').textContent = 'Disconnected';
+    summaryEl.innerHTML = `<div style="color:var(--warn);font-weight:600;">Disconnected</div><div style="margin-top:0.35rem;color:var(--text-muted);">${escHtml(clusterData.info || 'Cluster not reachable')}</div>`;
+  } catch (e) {
+    document.getElementById('k8s-summary-content').innerHTML = `<div style="color:var(--danger);">Error: ${e.message}</div>`;
+  }
+}
+
+// Load DevOps on page switch
+const originalShowPage = showPage;
+window.showPage = function(name) {
+  originalShowPage(name);
+  if (name === 'devops') {
+    loadDevOpsStatus();
+  }
+};
+
+// Git Push Modal
+function showGitPushModal() {
+  document.getElementById('git-push-modal').style.display = 'flex';
+  document.getElementById('commit-message').focus();
+}
+
+function closeGitPushModal() {
+  document.getElementById('git-push-modal').style.display = 'none';
+  document.getElementById('commit-message').value = '';
+  document.getElementById('github-token').value = '';
+  document.getElementById('git-push-status').innerHTML = '';
+}
+
+async function performGitPush() {
+  const message = (document.getElementById('commit-message').value || '').trim();
+  const token = (document.getElementById('github-token').value || '').trim();
+  const statusEl = document.getElementById('git-push-status');
+  
+  if (!message) {
+    statusEl.innerHTML = '<div style="color:var(--danger);">Commit message is required</div>';
+    return;
+  }
+  
+  try {
+    statusEl.innerHTML = '<div style="color:var(--text-muted);">⏳ Pushing to GitHub...</div>';
+    
+    const res = await fetch('/api/git/push', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders()
+      },
+      body: JSON.stringify({
+        message: message,
+        token: token
+      })
+    });
+    
+    const data = await res.json();
+    
+    if (res.ok) {
+      if (data.status === 'no_changes') {
+        statusEl.innerHTML = '<div style="color:var(--warn);">ℹ️ No changes to commit</div>';
+      } else {
+        statusEl.innerHTML = '<div style="color:var(--success);">✓ Successfully pushed to GitHub!</div><div style="margin-top:0.5rem;color:var(--text-muted);font-size:0.8rem;">Commit: ' + escHtml(data.commit_message) + '</div>';
+        setTimeout(() => {
+          closeGitPushModal();
+          loadDevOpsStatus();
+        }, 2000);
+      }
+    } else {
+      statusEl.innerHTML = '<div style="color:var(--danger);">❌ ' + (data.error || 'Push failed') + '</div><div style="margin-top:0.5rem;color:var(--text-muted);font-size:0.75rem;">' + (data.detail || '') + '</div>';
+    }
+  } catch (e) {
+    statusEl.innerHTML = '<div style="color:var(--danger);">Error: ' + e.message + '</div>';
+  }
+}
+
+// Close modal on escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('git-push-modal').style.display === 'flex') {
+    closeGitPushModal();
+  }
+});
 
 initAuth();
 </script>

@@ -1,5 +1,104 @@
 [
   {
+    "id": "8219F6C5",
+    "filename": "defectsense_final_clean.py",
+    "probability": 0.34955595738932116,
+    "status": "success",
+    "timestamp": "2026-05-02T04:46:22.899334",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "A77F88AC",
+    "filename": "demo_clean.py",
+    "probability": 0.4531307070127743,
+    "status": "success",
+    "timestamp": "2026-05-02T04:31:13.193382",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "96116F3A",
+    "filename": "defectsense_final_clean.py",
+    "probability": 0.34955595738932116,
+    "status": "warning",
+    "timestamp": "2026-05-02T04:27:01.818790",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "DAEE766E",
+    "filename": "dqn_agent_fixed.py",
+    "probability": 0.5133553474946719,
+    "status": "success",
+    "timestamp": "2026-05-01T20:38:57.977590",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "3C011714",
+    "filename": "dqn_agent_fixed.py",
+    "probability": 0.5133553474946719,
+    "status": "success",
+    "timestamp": "2026-05-01T20:35:38.806263",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "EF9C4F2F",
+    "filename": "defectsense_final_clean.py",
+    "probability": 0.34955595738932116,
+    "status": "success",
+    "timestamp": "2026-05-01T20:08:55.826232",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "6D1F1DAD",
+    "filename": "defectsense_final_clean.py",
+    "probability": 0.34955595738932116,
+    "status": "success",
+    "timestamp": "2026-05-01T19:50:33.124447",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "2D082306",
+    "filename": "rag_chat_final.py",
+    "probability": 0.09339645158050326,
+    "status": "warning",
+    "timestamp": "2026-04-30T13:52:14.528892",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "1D4D7F4B",
+    "filename": "defectsense_final_clean.py",
+    "probability": 0.34955595738932116,
+    "status": "success",
+    "timestamp": "2026-04-30T13:48:11.567027",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "B8866176",
+    "filename": "dqn_agent_fixed.py",
+    "probability": 0.5133553474946719,
+    "status": "success",
+    "timestamp": "2026-04-28T22:43:42.635399",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
+    "id": "44FD0A7F",
+    "filename": "defect_detector.py",
+    "probability": 0.7034794169762655,
+    "status": "blocked",
+    "timestamp": "2026-04-28T21:28:37.872379",
+    "stages": 6,
+    "mode": "real"
+  },
+  {
     "id": "1489C98E",
     "filename": "dqn_agent_fixed.py",
     "probability": 0.5133553474946719,
@@ -77,105 +176,6 @@
     "probability": 0.5999149186525297,
     "status": "success",
     "timestamp": "2026-04-13T02:12:58.090817",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "6B775EFF",
-    "filename": "game.py",
-    "probability": 0.5999149186525297,
-    "status": "success",
-    "timestamp": "2026-04-13T02:05:07.479278",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "6E3B5A83",
-    "filename": "test_code.py",
-    "probability": 0.3124268188707974,
-    "status": "success",
-    "timestamp": "2026-04-13T01:58:08.056814",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "61BFECCD",
-    "filename": "test_code.py",
-    "probability": 0.3124268188707974,
-    "status": "success",
-    "timestamp": "2026-04-13T01:56:00.560108",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "9A0DCBD0",
-    "filename": "game.py",
-    "probability": 0.5999149186525297,
-    "status": "success",
-    "timestamp": "2026-04-13T01:47:12.818221",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "98A36313",
-    "filename": "game.py",
-    "probability": 0.5999149186525297,
-    "status": "success",
-    "timestamp": "2026-04-13T01:39:06.940090",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "7961845A",
-    "filename": "defect_detector.py",
-    "probability": 0.7034794169762655,
-    "status": "blocked",
-    "timestamp": "2026-04-13T01:31:09.555466",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "6DA534E1",
-    "filename": "test_code.py",
-    "probability": 0.3124268188707974,
-    "status": "warning",
-    "timestamp": "2026-04-13T01:26:13.721553",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "7A173422",
-    "filename": "test_code.py",
-    "probability": 0.3124268188707974,
-    "status": "warning",
-    "timestamp": "2026-04-13T01:22:40.229851",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "7E0645E6",
-    "filename": "game.py",
-    "probability": 0.5999149186525297,
-    "status": "warning",
-    "timestamp": "2026-04-13T01:13:50.015044",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "A2967D2B",
-    "filename": "defect_detector.py",
-    "probability": 0.8883443180872189,
-    "status": "blocked",
-    "timestamp": "2026-04-12T18:49:20.193311",
-    "stages": 6,
-    "mode": "real"
-  },
-  {
-    "id": "E47178D9",
-    "filename": "game.py",
-    "probability": 0.996461137101635,
-    "status": "blocked",
-    "timestamp": "2026-04-12T18:48:46.258166",
     "stages": 6,
     "mode": "real"
   }

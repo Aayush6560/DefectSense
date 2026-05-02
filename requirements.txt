@@ -19,3 +19,4 @@ chromadb==0.5.3
 # ── System utilities ───────────────────────────────────────
 psutil==6.0.0
 PyYAML==6.0.2
+docker==7.1.0

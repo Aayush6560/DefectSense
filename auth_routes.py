@@ -21,12 +21,15 @@ _USERNAME_RE = re.compile(r'^[a-zA-Z0-9_\-]{3,32}$')
 #     )
 #     return response
 def _set_auth_cookie(response, token: str):
+    # Allow operators to override cookie flags via environment for local testing
+    samesite = os.environ.get('COOKIE_SAMESITE', 'None')
+    secure_flag = os.environ.get('COOKIE_SECURE', 'true').lower() == 'true'
     response.set_cookie(
         'token',
         token,
         httponly=True,
-        samesite='None',   # REQUIRED for HTTPS
-        secure=True,       # REQUIRED for HTTPS
+        samesite=samesite,
+        secure=secure_flag,
         max_age=86400,
         path='/',
     )

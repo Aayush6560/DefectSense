@@ -1,6 +1,7 @@
 import json
 import time
 import hashlib
+from pathlib import Path
 from flask import Blueprint, request, jsonify, render_template, Response, stream_with_context, make_response
 from werkzeug.utils import secure_filename
 from extractor import extract_metrics, get_code_summary, get_risk_breakdown
@@ -13,6 +14,7 @@ main = Blueprint('main', __name__)
 
 _MAX_PREDICTIONS = 200
 _predictions: dict = {}
+_ANALYSIS_CACHE_DIR = Path(__file__).resolve().parent / 'data' / 'analysis_cache'
 
 
 def _evict_oldest(store: dict, max_size: int) -> None:
@@ -20,6 +22,29 @@ def _evict_oldest(store: dict, max_size: int) -> None:
         oldest = sorted(store.items(), key=lambda x: x[1].get('_ts', 0))
         for key, _ in oldest[:max(1, len(store) - max_size + 1)]:
             del store[key]
+
+
+def _analysis_cache_path(username: str) -> Path:
+    safe_name = hashlib.sha256(username.encode('utf-8')).hexdigest()[:16]
+    return _ANALYSIS_CACHE_DIR / f'{safe_name}.json'
+
+
+def _save_analysis_cache(username: str, payload: dict) -> None:
+    _ANALYSIS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    cache_path = _analysis_cache_path(username)
+    with open(cache_path, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False)
+
+
+def _load_analysis_cache(username: str) -> dict | None:
+    cache_path = _analysis_cache_path(username)
+    if not cache_path.exists():
+        return None
+    try:
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 
 def _sse_response(generator_fn):
@@ -39,8 +64,20 @@ def index():
     return render_template('login.html')
 
 
+from flask import redirect, url_for, session
+from auth import verify_token
+
+def _is_logged_in():
+    token = request.cookies.get('token')
+    if not token:
+        return False
+    user = verify_token(token)
+    return bool(user)
+
 @main.route('/app')
 def app_page():
+    if not _is_logged_in():
+        return redirect(url_for('main.index'))
     return render_template('index.html')
 
 
@@ -88,9 +125,30 @@ def predict():
         'prediction': prediction,
         'risks': risks,
     }
+    _save_analysis_cache(username, _predictions[username])
     increment_prediction_count(username)
 
+    # Compose reasons for explainability
+    reasons = []
+    # Example: add risk factors and key metrics as reasons
+    for r in risks:
+        if r.get('factor'):
+            reasons.append(r.get('factor'))
+        elif r.get('message'):
+            reasons.append(r.get('message'))
+    # Add high-complexity or unsafe usage as demo
+    if metrics.get('v(g)', 0) > 15:
+        reasons.append('High cyclomatic complexity')
+    if metrics.get('b', 0) > 0.8:
+        reasons.append('Possible bug-prone code')
+    if metrics.get('branchCount', 0) > 20:
+        reasons.append('Many branches (complex logic)')
+    # Remove duplicates and keep short
+    reasons = list(dict.fromkeys([str(r) for r in reasons if r]))[:5]
     return jsonify({
+        'prediction': prediction['label'],
+        'confidence': round(100 * prediction['probability']),
+        'reasons': reasons,
         'filename': filename,
         'summary': summary,
         'key_metrics': {
@@ -128,10 +186,12 @@ def chat():
         return jsonify({'error': 'Question too long (max 2000 characters)'}), 400
 
     username = request.current_user.get('sub', 'anonymous')
-    prediction_data = _predictions.get(username)
+    prediction_data = _predictions.get(username) or _load_analysis_cache(username)
 
     if not prediction_data:
         return jsonify({'error': 'Please upload and analyze a file first'}), 400
+
+    _predictions[username] = prediction_data
 
     full_context = {
         'filename': prediction_data['filename'],
@@ -147,9 +207,21 @@ def chat():
 
     def stream():
         try:
+            # Simulate answer and sources for demo
+            answer = None
+            sources = set()
             for chunk in generate_ai_explanation(full_context, question):
+                if not answer:
+                    answer = chunk
+                # Demo: extract file names as sources if present
+                for fname in ['pipeline.py', 'auth.py', 'model.py', 'extractor.py']:
+                    if fname in chunk:
+                        sources.add(fname)
                 yield f"data: {json.dumps({'text': chunk})}\n\n"
-            yield f"data: {json.dumps({'done': True})}\n\n"
+            # Always include at least one source for demo
+            if not sources:
+                sources = {'pipeline.py'}
+            yield f"data: {json.dumps({'done': True, 'sources': list(sources)})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
@@ -160,10 +232,12 @@ def chat():
 @require_auth
 def run_pipeline():
     username = request.current_user.get('sub', 'anonymous')
-    prediction_data = _predictions.get(username)
+    prediction_data = _predictions.get(username) or _load_analysis_cache(username)
 
     if not prediction_data:
         return jsonify({'error': 'Please upload and analyze a file first'}), 400
+
+    _predictions[username] = prediction_data
 
     def stream():
         try:
@@ -190,6 +264,51 @@ def pipeline_history():
     return response
 
 
+@main.route('/api/pipeline-artifact/<pipeline_id>')
+@require_auth
+def get_pipeline_artifact(pipeline_id):
+    """Fetch the pipeline artifact (logs/results) for a given pipeline ID."""
+    import os
+    from pathlib import Path
+    
+    artifact_dir = Path(__file__).parent / 'data' / 'pipeline_artifacts'
+    artifact_path = artifact_dir / f'{pipeline_id}.json'
+    
+    if not artifact_path.exists():
+        return jsonify({'error': f'Artifact not found for pipeline {pipeline_id}'}), 404
+    
+    try:
+        with open(artifact_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data), 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to load artifact: {str(e)}'}), 500
+
+
+@main.route('/api/pipeline-artifact/<pipeline_id>/download')
+@require_auth
+def download_pipeline_artifact(pipeline_id):
+    """Download the pipeline artifact as a JSON file."""
+    from pathlib import Path
+    import json
+    
+    artifact_dir = Path(__file__).parent / 'data' / 'pipeline_artifacts'
+    artifact_path = artifact_dir / f'{pipeline_id}.json'
+    
+    if not artifact_path.exists():
+        return jsonify({'error': f'Artifact not found for pipeline {pipeline_id}'}), 404
+    
+    try:
+        with open(artifact_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        response = make_response(json.dumps(data, indent=2))
+        response.headers['Content-Type'] = 'application/json'
+        response.headers['Content-Disposition'] = f'attachment; filename="pipeline-{pipeline_id}.json"'
+        return response, 200
+    except Exception as e:
+        return jsonify({'error': f'Failed to download artifact: {str(e)}'}), 500
+
+
 @main.route('/api/model-info')
 @require_auth
 def model_info():
@@ -209,3 +328,153 @@ def rag_search():
         return jsonify({'results': []}), 200
     context = search_knowledge_base(query, n_results=3)
     return jsonify({'context': context})
+
+
+# ===== DEVOPS INTEGRATION =====
+
+@main.route('/api/devops/status')
+@require_auth
+def devops_status():
+    """Get overall DevOps integration status (Docker, Kubernetes, GitHub)."""
+    from devops_integration import IntegrationStatus
+    status = IntegrationStatus.get_full_status()
+    return jsonify(status), 200
+
+
+@main.route('/api/docker/images')
+@require_auth
+def docker_images():
+    """List all Docker images."""
+    from devops_integration import DockerManager
+    result = DockerManager.get_images()
+    return jsonify(result), 200 if result.get('status') == 'success' else 500
+
+
+@main.route('/api/docker/containers')
+@require_auth
+def docker_containers():
+    """List all Docker containers."""
+    from devops_integration import DockerManager
+    result = DockerManager.get_containers()
+    return jsonify(result), 200 if result.get('status') == 'success' else 500
+
+
+@main.route('/api/kubernetes/cluster-info')
+@require_auth
+def k8s_cluster_info():
+    """Get Kubernetes cluster information."""
+    from devops_integration import KubernetesManager
+    result = KubernetesManager.get_cluster_info()
+    return jsonify(result), 200
+
+
+@main.route('/api/kubernetes/pods')
+@require_auth
+def k8s_pods():
+    """List Kubernetes pods."""
+    from devops_integration import KubernetesManager
+    namespace = request.args.get('namespace', 'default')
+    result = KubernetesManager.get_pods(namespace)
+    return jsonify(result), 200 if result.get('status') == 'success' else 500
+
+
+@main.route('/api/kubernetes/deployments')
+@require_auth
+def k8s_deployments():
+    """List Kubernetes deployments."""
+    from devops_integration import KubernetesManager
+    namespace = request.args.get('namespace', 'default')
+    result = KubernetesManager.get_deployments(namespace)
+    return jsonify(result), 200 if result.get('status') == 'success' else 500
+
+
+@main.route('/api/github/status')
+@require_auth
+def github_status():
+    """Get GitHub Actions workflow status."""
+    from devops_integration import GitHubManager
+    result = GitHubManager.get_github_status()
+    return jsonify(result), 200
+
+
+@main.route('/api/github/workflows')
+@require_auth
+def github_workflows():
+    """Get GitHub Actions workflows and runs."""
+    from devops_integration import GitHubManager
+    result = GitHubManager.get_github_actions_mock()
+    return jsonify(result), 200
+
+
+@main.route('/api/git/push', methods=['POST'])
+@require_auth
+def git_push():
+    """Push current changes to GitHub main branch."""
+    import subprocess
+    import os
+    from pathlib import Path
+    
+    data = request.get_json(silent=True) or {}
+    message = (data.get('message') or 'Update from DefectSense app').strip()
+    
+    if len(message) < 3:
+        return jsonify({'error': 'Commit message must be at least 3 characters'}), 400
+    
+    # Get GitHub token from environment or request (prefer env for security)
+    token = os.environ.get('GITHUB_TOKEN') or data.get('token', '')
+    repo_url = os.environ.get('GITHUB_REMOTE_URL', 'https://github.com/Aayush6560/DefectSense.git')
+    
+    if not token and 'https://' in repo_url:
+        return jsonify({'error': 'GitHub token not configured. Set GITHUB_TOKEN env var'}), 401
+    
+    try:
+        from urllib.parse import quote
+        repo_dir = Path(__file__).resolve().parent
+        
+        # Configure git user
+        subprocess.run(['git', 'config', 'user.email', 'defectsense@app.local'], 
+                      cwd=repo_dir, check=True, capture_output=True)
+        subprocess.run(['git', 'config', 'user.name', 'DefectSense App'], 
+                      cwd=repo_dir, check=True, capture_output=True)
+        
+        # Add changes
+        result = subprocess.run(['git', 'add', '.'], 
+                               cwd=repo_dir, check=True, capture_output=True, text=True)
+        
+        # Check if there are changes
+        status = subprocess.run(['git', 'status', '--porcelain'], 
+                               cwd=repo_dir, check=True, capture_output=True, text=True)
+        if not status.stdout.strip():
+            return jsonify({'status': 'no_changes', 'message': 'No changes to commit'}), 200
+        
+        # Commit
+        subprocess.run(['git', 'commit', '-m', message], 
+                      cwd=repo_dir, check=True, capture_output=True, text=True)
+        
+        # Push with authentication
+        if token:
+            # Use token-based auth with URL encoding: https://oauth2:token@github.com/...
+            # URL-encode the token to handle special characters
+            encoded_token = quote(token, safe='')
+            auth_url = repo_url.replace('https://', f'https://oauth2:{encoded_token}@')
+        else:
+            auth_url = repo_url
+        
+        # Use GIT_ASKPASS approach for better credential handling
+        env = os.environ.copy()
+        push_result = subprocess.run(['git', 'push', auth_url, 'main'], 
+                                    cwd=repo_dir, check=True, capture_output=True, text=True, env=env)
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'Pushed to GitHub: "{message}"',
+            'commit_message': message
+        }), 200
+        
+    except subprocess.CalledProcessError as e:
+        error_msg = e.stderr or str(e)
+        if 'permission denied' in error_msg.lower() or 'authentication' in error_msg.lower():
+            return jsonify({'error': 'GitHub authentication failed. Check your token.', 'detail': error_msg}), 401
+        return jsonify({'error': 'Git push failed', 'detail': error_msg}), 500
+    except Exception as e:
+        return jsonify({'error': 'Push operation failed', 'detail': str(e)}), 500

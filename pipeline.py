@@ -29,7 +29,7 @@ class _UnixSocketHTTPConnection(http.client.HTTPConnection):
         self.sock.connect(self._socket_path)
 
 
-def _run_command(command, cwd=None, timeout=900):
+def _run_command(command, cwd=None, timeout=900, env=None):
     try:
         completed = subprocess.run(
             command,
@@ -37,6 +37,7 @@ def _run_command(command, cwd=None, timeout=900):
             capture_output=True,
             text=True,
             timeout=timeout,
+            env=env,
         )
         return completed.returncode, completed.stdout.strip(), completed.stderr.strip()
     except FileNotFoundError:
@@ -47,9 +48,9 @@ def _run_command(command, cwd=None, timeout=900):
         return 1, '', str(exc)
 
 
-def _stage_result(stage_name, command, cwd=None, timeout=900):
+def _stage_result(stage_name, command, cwd=None, timeout=900, env=None):
     started_at = time.time()
-    returncode, stdout, stderr = _run_command(command, cwd=cwd, timeout=timeout)
+    returncode, stdout, stderr = _run_command(command, cwd=cwd, timeout=timeout, env=env)
     return {
         'stage': stage_name,
         'command': ' '.join(command),
@@ -175,8 +176,58 @@ def _docker_build_via_socket(image_tag: str, context_dir: Path) -> dict:
                 pass
 
 
-def _is_k8s_reachable() -> tuple[bool, str]:
-    returncode, stdout, stderr = _run_command(['kubectl', 'cluster-info'], cwd=ROOT, timeout=15)
+def _kubectl_env() -> dict | None:
+    """Rewrite mounted kubeconfig for container reachability (Docker Desktop)."""
+    kubeconfig = os.environ.get('KUBECONFIG')
+    if not kubeconfig:
+        return None
+
+    try:
+        kube_path = Path(kubeconfig)
+        if not kube_path.exists():
+            return None
+
+        original_lines = kube_path.read_text(encoding='utf-8', errors='ignore').splitlines()
+        rewritten_lines = []
+        changed = False
+
+        for index, line in enumerate(original_lines):
+            if line.strip().startswith('certificate-authority-data:') or line.strip().startswith('certificate-authority:'):
+                changed = True
+                continue
+
+            updated_line = line.replace('https://127.0.0.1:', 'https://host.docker.internal:')
+            updated_line = updated_line.replace('https://localhost:', 'https://host.docker.internal:')
+            rewritten_lines.append(updated_line)
+
+            if updated_line.strip().startswith('server: https://host.docker.internal:'):
+                next_line = original_lines[index + 1].strip() if index + 1 < len(original_lines) else ''
+                if not next_line.startswith('insecure-skip-tls-verify:'):
+                    indent = updated_line[:len(updated_line) - len(updated_line.lstrip())]
+                    rewritten_lines.append(f'{indent}insecure-skip-tls-verify: true')
+                    changed = True
+
+            if updated_line != line:
+                changed = True
+
+        if not changed:
+            return None
+
+        rewritten = '\n'.join(rewritten_lines) + ('\n' if original_lines else '')
+        temp_file = tempfile.NamedTemporaryFile('w', delete=False, suffix='.kubeconfig')
+        temp_file.write(rewritten)
+        temp_file.flush()
+        temp_file.close()
+
+        env = os.environ.copy()
+        env['KUBECONFIG'] = temp_file.name
+        return env
+    except Exception:
+        return None
+
+
+def _is_k8s_reachable(kubectl_env=None) -> tuple[bool, str]:
+    returncode, stdout, stderr = _run_command(['kubectl', 'cluster-info'], cwd=ROOT, timeout=15, env=kubectl_env)
     if returncode == 0:
         return True, ''
     return False, stderr or stdout or 'Kubernetes cluster is not reachable.'
@@ -406,9 +457,10 @@ def run_pipeline_stream(filename: str, source_code: str, metrics: dict, predicti
                     results.append(deploy_result)
                     yield json.dumps({'type': 'stage_complete', 'stage': 'k8s_deploy', 'status': deploy_result['status'], 'duration': '0.0s', 'output': _summarize_result(deploy_result)})
                 else:
-                    reachable, reason = _is_k8s_reachable()
+                    kubectl_env = _kubectl_env()
+                    reachable, reason = _is_k8s_reachable(kubectl_env)
                     if not reachable:
-                        dry_run = _stage_result('k8s_deploy', ['kubectl', 'apply', '--dry-run=client', '-f', str(K8S_DIR)], cwd=ROOT, timeout=300)
+                        dry_run = _stage_result('k8s_deploy', ['kubectl', 'apply', '--dry-run=client', '-f', str(K8S_DIR)], cwd=ROOT, timeout=300, env=kubectl_env)
                         deploy_result = {
                             'stage': 'k8s_deploy',
                             'status': 'pass' if dry_run['returncode'] == 0 else 'warning',
@@ -422,8 +474,8 @@ def run_pipeline_stream(filename: str, source_code: str, metrics: dict, predicti
                         yield json.dumps({'type': 'stage_complete', 'stage': 'k8s_deploy', 'status': deploy_result['status'], 'duration': f"{deploy_result['duration']:.1f}s", 'output': _summarize_result(deploy_result)})
                     else:
                         yield json.dumps({'type': 'stage_start', 'stage': 'k8s_deploy', 'name': 'Kubernetes Deploy', 'tool': 'kubectl apply'})
-                        deploy_result = _stage_result('k8s_deploy', ['kubectl', 'apply', '-f', str(K8S_DIR)], cwd=ROOT, timeout=900)
-                        rollout_result = _stage_result('k8s_rollout', ['kubectl', 'rollout', 'status', 'deployment/proj3-defectsense', '--timeout=180s'], cwd=ROOT, timeout=300)
+                        deploy_result = _stage_result('k8s_deploy', ['kubectl', 'apply', '-f', str(K8S_DIR)], cwd=ROOT, timeout=900, env=kubectl_env)
+                        rollout_result = _stage_result('k8s_rollout', ['kubectl', 'rollout', 'status', 'deployment/proj3-defectsense', '--timeout=180s'], cwd=ROOT, timeout=300, env=kubectl_env)
                         deploy_result['rollout'] = rollout_result
                         if deploy_result['returncode'] == 0 and rollout_result['returncode'] == 0:
                             deploy_result['status'] = 'pass'
@@ -465,7 +517,42 @@ def run_pipeline_stream(filename: str, source_code: str, metrics: dict, predicti
             except Exception:
                 pass
 
+
     _save_pipeline_run(pipeline_id, filename, prediction.get('probability', 0), final_status, results)
+
+    # --- Artifact storage ---
+    try:
+        artifact_dir = ROOT / 'data' / 'pipeline_artifacts'
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        artifact_path = artifact_dir / f'{pipeline_id}.json'
+        with open(artifact_path, 'w', encoding='utf-8') as f:
+            json.dump({
+                'pipeline_id': pipeline_id,
+                'filename': filename,
+                'status': final_status,
+                'results': results,
+                'timestamp': datetime.now().isoformat(),
+            }, f, indent=2)
+    except Exception as exc:
+        pass
+
+    # --- Webhook notification ---
+    webhook_url = os.environ.get('PIPELINE_WEBHOOK_URL')
+    if webhook_url:
+        import threading
+        import requests
+        def _send_webhook():
+            try:
+                payload = {
+                    'pipeline_id': pipeline_id,
+                    'filename': filename,
+                    'status': final_status,
+                    'timestamp': datetime.now().isoformat(),
+                }
+                requests.post(webhook_url, json=payload, timeout=5)
+            except Exception:
+                pass
+        threading.Thread(target=_send_webhook, daemon=True).start()
 
     warning_stages = [s.get('stage') for s in results if isinstance(s, dict) and s.get('status') == 'warning']
     warning_reason = ('Warnings in stages: ' + ', '.join(dict.fromkeys(warning_stages))) if final_status == 'warning' and warning_stages else ''
@@ -478,15 +565,25 @@ def run_pipeline_stream(filename: str, source_code: str, metrics: dict, predicti
         'duration': f"{total_duration:.1f}s",
         'reason': '; '.join(dict.fromkeys(blocked_reasons)) if blocked_reasons else warning_reason,
         'mode': 'real',
+        'artifact_path': str(artifact_path) if 'artifact_path' in locals() else None,
     })
+
+
+def _compact_text(text: str, limit: int = 1200) -> str:
+    text = text or ''
+    if len(text) <= limit:
+        return text
+    head = text[: limit // 2]
+    tail = text[-(limit // 2):]
+    return f"{head}\n... [truncated] ...\n{tail}"
 
 
 def _summarize_result(result: dict) -> dict:
     return {
         'command': result.get('command'),
         'returncode': result.get('returncode'),
-        'stdout': result.get('stdout', '')[-1200:],
-        'stderr': result.get('stderr', '')[-1200:],
+        'stdout': _compact_text(result.get('stdout', ''), 1200),
+        'stderr': _compact_text(result.get('stderr', ''), 1200),
         'status': result.get('status'),
         'duration': round(float(result.get('duration', 0) or 0), 2),
     }

@@ -1,4 +1,4 @@
-FROM python:3.10-slim AS base
+FROM python:3.10.14-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -10,25 +10,34 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 ARG REQUIREMENTS_FILE=requirements.txt
+ARG KUBECTL_VERSION=v1.29.0
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
     curl \
+    git \
+    gnupg \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
+
+RUN install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    chmod a+r /etc/apt/keyrings/docker.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian bookworm stable" > /etc/apt/sources.list.d/docker.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends docker-ce-cli && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl && \
+    chmod +x /usr/local/bin/kubectl
+
+RUN python -m pip install --upgrade pip
 
 COPY requirements*.txt ./
 RUN pip install --no-cache-dir -r ${REQUIREMENTS_FILE}
 
-RUN groupadd --gid 1000 appuser && \
-    useradd --uid 1000 --gid 1000 --no-create-home appuser
+COPY . .
 
-COPY --chown=appuser:appuser . .
-
-RUN mkdir -p data ml/models && \
-    chown -R appuser:appuser data ml/models
-
-USER appuser
+RUN mkdir -p data ml/models
 
 EXPOSE 5000
 
